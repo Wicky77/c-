@@ -1,0 +1,85 @@
+using System.Collections.Generic;
+using System.Linq;
+
+namespace TextAnalysis
+{
+    static class SentencesParserTask
+    {
+        public static List<List<string>> ParseSentences(string text)
+        {
+            var sentencesList = new List<List<string>>();
+            var sentences = SplitIntoSentences(text);
+
+            foreach (var sentence in sentences)
+            {
+                var words = ExtractWordsFromSentence(sentence);
+                if (words.Count > 0)
+                {
+                    sentencesList.Add(words);
+                }
+            }
+
+            return sentencesList;
+        }
+
+        private static string[] SplitIntoSentences(string text)
+        {
+            var delimiterChars = new[] { '.', '!', '?', ':', ';', '(', ')' };
+            return text.ToLower()
+                      .Split(delimiterChars)
+                      .Where(x => !string.IsNullOrEmpty(x))
+                      .ToArray();
+        }
+
+        private static List<string> ExtractWordsFromSentence(string sentence)
+        {
+            var words = new List<string>();
+            var startLetter = -1;
+
+            for (var i = 0; i < sentence.Length; i++)
+            {
+                if (IsWordCharacter(sentence[i]))
+                {
+                    startLetter = UpdateStartPosition(startLetter, i);
+                }
+                else
+                {
+                    AddCurrentWordIfExists(sentence, words, ref startLetter, i);
+                }
+
+                AddWordAtSentenceEnd(sentence, words, ref startLetter, i);
+            }
+            return words;
+        }
+
+        private static bool IsWordCharacter(char character)
+        {
+            return char.IsLetter(character) || character.Equals('\'');
+        }
+
+        private static int UpdateStartPosition(int currentStart, int currentIndex)
+        {
+            return currentStart == -1 ? currentIndex : currentStart;
+        }
+
+        private static void AddCurrentWordIfExists(string sentence, List<string> words,
+ref int startLetter, int currentIndex)
+        {
+            if (startLetter != -1)
+            {
+                words.Add(sentence.Substring(startLetter, currentIndex - startLetter));
+                startLetter = -1;
+            }
+        }
+
+        private static void AddWordAtSentenceEnd(string sentence, List<string> words,
+ref int startLetter, int currentIndex)
+        {
+            if (currentIndex == sentence.Length - 1 && startLetter != -1)
+            {
+                words.Add(sentence.Substring(startLetter, sentence.Length - startLetter));
+                startLetter = -1;
+            }
+        }
+    }
+}
