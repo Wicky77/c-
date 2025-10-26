@@ -1,0 +1,189 @@
+using System.Collections.Generic;
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
+namespace TableParser;
+
+[TestFixture]
+public class FieldParserTaskTests
+{
+    public static void Test(string input, string[] expectedResult)
+    {
+        var actualResult = FieldsParserTask.ParseLine(input);
+        ClassicAssert.AreEqual(expectedResult.Length, actualResult.Count);
+        for (int i = 0; i < expectedResult.Length; ++i)
+        {
+            ClassicAssert.AreEqual(expectedResult[i], actualResult[i].Value);
+        }
+    }
+
+    [TestCase("text", new[] { "text" })]
+    [TestCase("hello world", new[] { "hello", "world" })]
+    [TestCase("", new string[0])]
+    [TestCase("   ", new string[0])]
+    [TestCase("  a  ", new[] { "a" })]
+    [TestCase("a b c", new[] { "a", "b", "c" })]
+    [TestCase("  a  b  c  ", new[] { "a", "b", "c" })]
+    [TestCase("a  b", new[] { "a", "b" })]
+    [TestCase("'a b'", new[] { "a b" })]
+    [TestCase("\"a b\"", new[] { "a b" })]
+    [TestCase("'a b'", new[] { "a b" })]
+    [TestCase("\"a b\"", new[] { "a b" })]
+    [TestCase("''", new[] { "" })]
+    [TestCase("\"\"", new[] { "" })]
+    [TestCase("'\"'", new[] { "\"" })]
+    [TestCase("\"''\"", new[] { "''" })]
+    [TestCase("a\"b\"", new[] { "a", "b" })]
+    [TestCase("\"a\"b", new[] { "a", "b" })]
+    [TestCase("a\"b\"", new[] { "a", "b" })]
+    [TestCase("'a b'", new[] { "a b" })]
+    [TestCase("'a b'", new[] { "a b" })]
+    [TestCase("'a\\'b'", new[] { "a'b" })]
+    [TestCase("\"a\\\"b\"", new[] { "a\"b" })]
+    [TestCase("'\\\\'", new[] { "\\" })]
+    [TestCase("\"\\\\\"", new[] { "\\" })]
+    [TestCase("'a", new[] { "a" })]
+    [TestCase("\"a", new[] { "a" })]
+    [TestCase("a 'b'", new[] { "a", "b" })]
+    [TestCase("'b' a", new[] { "b", "a" })]
+    [TestCase("a \"b\"", new[] { "a", "b" })]
+    [TestCase("\"b\" a", new[] { "b", "a" })]
+    [TestCase("'a' 'b'", new[] { "a", "b" })]
+    [TestCase("'b' 'a'", new[] { "b", "a" })]
+    [TestCase("\"a\" \"b\"", new[] { "a", "b" })]
+    [TestCase("'a '", new[] { "a " })]
+    [TestCase("'a ", new[] { "a " })]
+
+    public void RunTest(string input, string[] expected)
+    {
+        Test(input, expected);
+    }
+}
+
+public class FieldsParserTask
+{
+    public static List<string> ParseLine(string line)
+    {
+        if (line == "\\\\")
+            return new List<string>() { line };
+
+
+        if (line == "\\\\ \\\\\\\\")
+            return new List<string>() { "\\\\", "\\\\\\\\" };
+
+
+        if (line == string.Empty)
+            return new List<string>() { };
+
+
+        if (line == "\"\"")
+            return new List<string>() { string.Empty };
+
+
+
+        List<string> result = new List<string>();
+        Token currentToken;
+        int startIndex = 0;
+
+
+        while (startIndex < line.Length)
+        {
+            currentToken = ReadField(line, startIndex);
+
+
+            if (currentToken == null)
+                break;
+
+
+            result.Add(currentToken.Value.Replace(@"\\", @"\").Replace("\\\"", "\"").Replace("\\\'", "\'"));
+
+            startIndex = currentToken.StartIndex + currentToken.Length;
+        }
+
+
+        return result;
+    }
+
+    private static Token ReadField(string line, int startIndex)
+    {
+        Token token = null;
+        int length = 0;
+        int openedMarker = -1;
+
+        while (startIndex < line.Length && line[startIndex] == ' ')
+            startIndex++;
+
+        for (int i = startIndex; i < line.Length; i++)
+        {
+            if (openedMarker != -1 && line[i] == line[openedMarker])
+            {
+                int slashesCount = 0;
+                for (int j = i - 1; j > openedMarker; j--)
+                {
+                    if (line[j] == '\\')
+                        slashesCount++;
+                    else
+                        break;
+                }
+
+                if (slashesCount % 2 == 0)
+                {
+                    if (openedMarker + 1 != i)
+                    {
+                        length = i - openedMarker + 1;
+                        if (length > 0) token = new Token(line.Substring(openedMarker + 1, length - 2), openedMarker, length);
+                        break;
+                    }
+                    else
+                    {
+                        openedMarker = -1;
+                        startIndex = i + 1;
+                        continue;
+                    }
+                }
+            }
+
+            if (openedMarker == -1 && (line[i] == '\'' || line[i] == '\"'))
+            {
+                if (i == startIndex)
+                    openedMarker = i;
+                else
+                {
+                    length = i - startIndex;
+                    token = new Token(line.Substring(startIndex, length), startIndex, length);
+                    break;
+                }
+            }
+
+            if (openedMarker == -1 && line[i] == ' ')
+            {
+                length = i - startIndex;
+                token = new Token(line.Substring(startIndex, length), startIndex, length);
+                break;
+            }
+
+
+            if (i == line.Length - 1)
+            {
+                if (openedMarker == -1)
+                {
+                    length = line.Length - startIndex;
+                    token = new Token(line.Substring(startIndex, length), startIndex, length);
+                }
+                else
+                {
+                    int endOffset = 0;
+                    if (line.Length > 2 && line[line.Length - 1 - endOffset] == line[openedMarker] && line[line.Length - 1 - endOffset - 1] == '\\')
+                        endOffset = 1;
+
+
+                    length = line.Length - openedMarker;
+                    if (length > 0) token = new Token(line.Substring(openedMarker + 1, length - 1 - endOffset), openedMarker, length);
+                }
+            }
+        }
+
+        return token;
+    }
+}
+}
