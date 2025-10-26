@@ -1,0 +1,60 @@
+using NUnit.Framework;
+using NUnit.Framework.Legacy;
+
+namespace TableParser;
+
+[TestFixture]
+public class QuotedFieldTaskTests
+{
+    [TestCase("''", 0, "", 2)]
+    [TestCase("'a'", 0, "a", 3)]
+    [TestCase("\"a b\"", 0, "a b", 5)]
+    [TestCase("'a b'", 0, "a b", 5)]
+    [TestCase("'a b a'", 0, "a b a", 7)]
+    [TestCase("'a b' a", 0, "a b", 4)]
+    [TestCase("a'a b'", 1, "a b", 5)]
+    [TestCase("'a b '", 0, "a b ", 6)]
+    [TestCase("' a b'", 0, " a b", 6)]
+    [TestCase("' a b '", 0, " a b ", 7)]
+    [TestCase("'a\"b'", 0, "a\"b", 5)]
+    [TestCase("\"a'b\"", 0, "a'b", 5)]
+    [TestCase("'a\\'b'", 0, "a'b", 6)]
+    [TestCase("\"a\\\"b\"", 0, "a\"b", 6)]
+    [TestCase("'a\\\\b'", 0, "a\\b", 6)]
+    [TestCase("''''", 0, "'", 4)]
+    [TestCase("\"\"\"\"", 0, "\"", 4)]
+    [TestCase("'\"'", 0, "\"", 3)]
+    [TestCase("\"'\"", 0, "'", 3)]
+    [TestCase("'\\\"'", 0, "\"", 4)]
+    [TestCase("\"\\'\"", 0, "'", 4)]
+    [TestCase("'a\\\\'", 0, "a\\", 5)]
+    [TestCase("'a\\'\"b'", 0, "a'\"b", 7)]
+    [TestCase("'a", 0, "a", 2)]
+    [TestCase("\"a\"", 0, "a", 3)]
+    [TestCase("'a'\"a\"", 0, "a", 3)]
+    [TestCase("'a'\"a\"", 3, "a", 3)]
+    [TestCase("'a\\\\a'", 0, "a\\a", 6)]
+    [TestCase("'a\\\\\\'b'", 0, "a\\'b", 8)]
+    [TestCase("'a\na'", 0, "a\na", 5)]
+    [TestCase("\"a\ra\"", 0, "a\ra", 5)]
+    [TestCase("'a!@#$a'", 0, "a!@#$a", 8)]
+    [TestCase("'a''a'", 0, "a'a", 6)]
+    [TestCase("\"a\"\"a\"", 0, "a\"a", 6)]
+    [TestCase("'a\\a'", 0, "a\\a", 5)]
+    [TestCase("'a\\'", 0, "a\\", 4)]
+    [TestCase("\"a\\\"", 0, "a\\", 4)]
+    [TestCase("'a \\'a\\' \\\"a\\\"'", 0, "a 'a' \"a\"", 15)]
+    public void Test(string line, int startIndex, string expectedValue, int expectedLength)
+    {
+        var actualToken = QuotedFieldTask.ReadQuotedField(line, startIndex);
+        Assert.AreEqual(new Token(expectedValue, startIndex, expectedLength), actualToken);
+    }
+}
+
+class QuotedFieldTask
+{
+    public static Token ReadQuotedField(string line, int startIndex)
+    {
+        return new Token(line, startIndex, line.Length - startIndex);
+    }
+}
