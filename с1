@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль</title>
+    <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="floating-nav">
+        <div class="nav-content">
+            <div class="nav-logo">
+                <img src="Group 2.png" alt="Логотип">
+            </div>
+            <div class="prof">
+                ПРОФИЛЬ
+            </div>
+            <div class="nav-ex">
+                <a href="index.html" class="exit">Выход</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="profile-container">
+        <div class="profile-icon">
+            <input type="file" id="avatar-upload" class="avatar-upload" accept="image/*">
+            <label for="avatar-upload" class="avatar-label">
+                <img id="avatar-preview" src="default-avatar.png" alt="Аватар">
+                <span class="upload-text">Нажмите для загрузки фото</span>
+            </label>
+        </div>
+
+        <div class="profile-info">
+            <div class="profile-name">Имя пользователя</div>
+            <div class="profile-details">
+                <div class="detail-item">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">user@example.com</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Телефон:</span>
+                    <span class="detail-value">+7 (999) 999-99-99</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Дата регистрации:</span>
+                    <span class="detail-value">01.01.2023</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="profile.js"></script>
+</body>
+</html>
