@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RatingHabits</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="rating.css" />
+        <link rel="icon" href="images/logo.png" type="image/x-icon" />
+    </head>
+    <body>
+        <header class="header">
+            <nav class="nav-items">
+                <ul>
+                    <a href="{{ url_for('index') }}"><li>Главная</li></a>
+                    <a href="{{ url_for('aboutus') }}"><li>О нас</li></a>
+                    <li class="active-nav-item">Рейтинг</li>
+                    <!-- <li>Контакты</li> -->
+                    <!-- <li>Поддержка</li> -->
+                    <li class="logout-btn">
+                        <a href="{{ url_for('logout') }}">Выйти</a>
+                    </li>
+                </ul>
+            </nav>
+        </header>
+        <body>
+            <div class="rating">
+            </div>
+
+            <div class="card1">
+                топ друзей
+            </div>
+
+            <div class="card2">
+                топ пользователей
+            </div>
+
+        <div class="unit">
+            ЮНИТ.УРФУ
+        </div>
+        <div class="footer">
+            <a href="{{ url_for('aboutus') }}">О нас</a>
+            <a href="/contacts">Контакты</a>
+            <a href="/support">Поддержка</a>
+        </div>
+
+        </body>
+        <script src="js/script.js"></script>
+    </body>
+</html>
