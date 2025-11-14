@@ -1,0 +1,107 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background:
+        url('images/back.png') center/cover no-repeat,
+        #000000;
+    background-size: cover;
+    background-attachment: fixed;
+    color: white;
+    line-height: 1.6;
+    padding-top: 80px;
+    min-height: 100vh;
+}
+
+.header {
+    display: none;
+}
+
+.rating{
+    width: 600px;
+    height: 200px;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: relative;
+    top: 4px;
+    left: 45px;
+}
+
+.card1 {
+    width:150px;
+    height:370px;
+    family-font: 'Urbanist';
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    outline: 0.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    min-height: 100px;
+    display: flex;
+    text-align: center;
+    flex: 1;
+    min-width: 450px;
+    max-width: 750px;
+    position: absolute;
+    flex-direction: column;
+    padding: 5px;
+    left: 45px;
+    top: 300px;
+}
+
+.card2 {
+    width: 700px;
+    height:595px;
+    family-font: 'Urbanist';
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    outline: 0.5px solid rgba(255, 255, 255, 0.5);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    min-height: 100px;
+    display: flex;
+    text-align: center;
+    flex: 1;
+    min-width: 450px;
+    max-width: 750px;
+    position: absolute;
+    flex-direction: column;
+    padding: 5px;
+    left: 780px;
+    top: 80px;
+}
+
+
+.unit {
+    weight: 600;
+    font-family: 'Urbanist', sans-serif;
+    font-size: 15px;
+    position: fixed;
+    bottom: 5px;
+    right: 20px;
+}
+
+.footer {
+    font-family: 'Montserrat', sans-serif;
+    position: fixed;
+    bottom: 20px;
+    left: 50px;
+}
+
+.footer a {
+    color: white;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    margin-right: 40px;
+}
+
+.footer a:hover {
+    color: #ccc;
+}
