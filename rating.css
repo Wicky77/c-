@@ -7,7 +7,7 @@
 body {
     font-family: 'Inter', sans-serif;
     background:
-        url('images/back.png') center/cover no-repeat,
+        url('images/back.png' ) center/cover no-repeat,
         #000000;
     background-size: cover;
     background-attachment: fixed;
@@ -16,6 +16,7 @@ body {
     padding-top: 80px;
     min-height: 100vh;
 }
+
 
 .header {
     display: none;
