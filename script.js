@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         });
     });
-
     // Обработка изменения статуса привычки
     document.querySelectorAll('.habit-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function () {
@@ -123,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    
     // Overlay и модальные
     const overlay = document.getElementById('modal-overlay');
     const modalTask = document.getElementById('modal-task');
