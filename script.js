@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const diffEl = taskItem.querySelector('[class*="task-difficulty-"]');
             if (diffEl) {
                 const match = diffEl.className.match(/task-difficulty-([a-z]+)/);
+                
                 if (match) difficulty = match[1];
             }
             fetch('/update_task', {
