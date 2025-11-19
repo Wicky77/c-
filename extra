@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Разделённый сайт</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Левая фиксированная панель - увеличена на 200px */
+        .left-panel {
+            width: 500px; /* Было 300px, стало 500px */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Окошко для кнопок другого цвета */
+        .button-window {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* Прямоугольные вытянутые кнопки */
+        .nav-button {
+            padding: 18px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .nav-button:active {
+            transform: translateY(0);
+        }
+
+        .button-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .button-text {
+            font-size: 12px;
+        }
+
+        /* Правая прокручиваемая часть - уменьшена */
+        .right-content {
+            margin-left: 500px; /* Соответствует новой ширине левой панели */
+            padding: 40px;
+            flex: 1;
+            overflow-y: auto;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+
+        .content-section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .content-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .content-section p {
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        /* Анимация для кнопок */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-button {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .button-grid .nav-button:nth-child(1) { animation-delay: 0.1s; }
+        .button-grid .nav-button:nth-child(2) { animation-delay: 0.2s; }
+        .button-grid .nav-button:nth-child(3) { animation-delay: 0.3s; }
+        .button-grid .nav-button:nth-child(4) { animation-delay: 0.4s; }
+
+        /* Дополнительный контент для демонстрации прокрутки */
+
+        /* Адаптивность */
+        @media (max-width: 1024px) {
+            .left-panel {
+                width: 400px;
+            }
+            .right-content {
+                margin-left: 400px;
+                padding: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-panel {
+                width: 350px;
+            }
+            .right-content {
+                margin-left: 350px;
+                padding: 20px;
+            }
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Левая фиксированная панель -->
+        <div class="left-panel">
+            <h1 style="color: white; margin-bottom: 10px; margin-top:90px;  font-size: 32px; text-align: center;">Сводка данных</h1>
+            <p style="color: rgba(255,255,255,0.9); text-align: center; margin-bottom: 30px;">аналитика маркетплейса</p>
+
+            <div class="button-window">
+                <div class="button-grid">
+                    <button class="nav-button" onclick="scrollToSection('sales')">
+                        <div class="button-icon">🚀</div>
+                        <div class="button-text">Динамика продаж</div>
+                    </button>
+                    <button class="nav-button" onclick="scrollToSection('products')">
+                        <div class="button-icon">📦</div>
+                        <div class="button-text">Работа с товаром</div>
+                    </button>
+                    <button class="nav-button" onclick="scrollToSection('ads')">
+                        <div class="button-icon">💻️</div>
+                        <div class="button-text">Работа с рекламой</div>
+                    </button>
+                    <button class="nav-button" onclick="scrollToSection('clients')">
+                        <div class="button-icon">📱</div>
+                        <div class="button-text">Работа с клиентами</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая прокручиваемая часть -->
+        <div class="right-content">
+            <div id="home" class="content-section">
+                <h2 id="sales">Динамика продаж</h2>
+                <img src="img.png">
+                <img src="img.png">
+                <h2 id="products">Работа с товаром</h2>
+                <img src="img.png">
+                <img src="img.png">
+                <h2 id="ads">Работа с рекламой</h2>
+                <img src="img.png">
+                <img src="img.png">
+                <h2 id="clients">Работа с клиентами</h2>
+                <img src="img.png">
+                <img src="img.png">
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+  function scrollToSection(sectionId) {
+    const element = document.getElementById(sectionId);
+    if (element) {
+        element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
+    </script>
+</body>
+</html>
