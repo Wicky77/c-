@@ -1,0 +1,52 @@
+CHIP CPU {
+    IN  inM[16],
+        instruction[16],
+        reset;
+
+    OUT outM[16],
+        writeM,
+        addressM[15],
+        pc[15];
+
+    PARTS:
+    Not(in=instruction[15], out=isAInstruction);// Ains or Cins
+
+    And(a=instruction[15], b=instruction[5], out=NeedWriteC);//Cins and Areg
+    Mux16(a=instruction, b=aluResult, sel=NeedWriteC, out=DataRegA);
+    Or(a=isAInstruction, b=NeedWriteC, out=WhereWhiteInregA);
+    ARegister(in=DataRegA, load=WhereWhiteInregA, out=ResInRegA);
+
+    Mux16(a=ResInRegA, b=inM, sel=instruction[12], out=WhereDataFromY);//instruction[12]=0-используем A-регистр/ 1-M
+
+    And(a=instruction[15], b=instruction[4], out=UploadNewValueinDorNot);
+    DRegister(in=aluResult, load=UploadNewValueinDorNot, out=ResInRegD);
+
+    ALU(
+        x=ResInRegD,
+        y=WhereDataFromY,
+        zx=instruction[11], nx=instruction[10],
+        zy=instruction[9], ny=instruction[8],
+        f=instruction[7], no=instruction[6],
+        out=aluResult,
+        zr=aluZeroFlag,
+        ng=aluNegativeFlag
+    );
+
+    Or16(a=false, b=ResInRegA, out[0..14]=addressM);
+    Or16(a=false, b=aluResult, out=outM);
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    And(a=aluZeroFlag, b=instruction[1], out=jumpIfZero);
+    And(a=aluNegativeFlag, b=instruction[2], out=jumpIfNegative);
+    Or(a=aluZeroFlag, b=aluNegativeFlag, out=nonPositive);
+    Not(in=nonPositive, out=isPositive);
+    And(a=isPositive, b=instruction[0], out=jumpIfPositive);
+
+    Or(a=jumpIfZero, b=jumpIfNegative, out=tmp);
+    Or(a=tmp, b=jumpIfPositive, out=shouldJump);
+
+    And(a=instruction[15], b=shouldJump, out=JumpifCins);
+    Not(in=JumpifCins, out=pcIncrement);
+
+    PC(in=ResInRegA, inc=pcIncrement, load=JumpifCins, reset=reset, out[0..14]=pc);
+}
