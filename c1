@@ -1,0 +1,80 @@
+namespace Geometry;
+
+public class Vector
+{
+    public double X;
+    public double Y;
+
+    public double GetLength()
+    {
+        return Geometry.GetLength(this);
+    }
+
+    public Vector Add(Vector other)
+    {
+        return Geometry.Add(this, other);
+    }
+
+    public bool Belongs(Segment segment)
+    {
+        return Geometry.IsVectorInSegment(this, segment);
+    }
+}
+
+public class Segment
+{
+    public Vector Begin;
+    public Vector End;
+
+    public double GetLength()
+    {
+        return Geometry.GetLength(this);
+    }
+
+    public bool Contains(Vector point)
+    {
+        return Geometry.IsVectorInSegment(point, this);
+    }
+}
+
+public static class Geometry
+{
+    public static double GetLength(Vector vector)
+    {
+        return Math.Sqrt(vector.X * vector.X + vector.Y * vector.Y);
+    }
+
+    public static double GetLength(Segment segment)
+    {
+        double dx = segment.End.X - segment.Begin.X;
+        double dy = segment.End.Y - segment.Begin.Y;
+        return Math.Sqrt(dx*dx + dy*dy);
+    }
+
+    public static Vector Add(Vector v1, Vector v2)
+    {
+        return new Vector
+        {
+            X = v1.X + v2.X,
+            Y = v1.Y + v2.Y
+        };
+    }
+
+    public static bool IsVectorInSegment(Vector point, Segment segment)
+    {
+        if ((point.X == segment.Begin.X && point.Y == segment.Begin.Y) ||
+(point.X == segment.End.X && point.Y == segment.End.Y))
+        {
+            return true;
+        }
+        double cross = (point.Y-segment.Begin.Y) * (segment.End.X-segment.Begin.X) -
+                       (point.X-segment.Begin.X) * (segment.End.Y-segment.Begin.Y);
+        if (cross != 0)
+        {
+            return false;
+        }
+        bool xBetween = (point.X-segment.Begin.X) * (point.X-segment.End.X)<=0;
+        bool yBetween = (point.Y-segment.Begin.Y) * (point.Y-segment.End.Y)<=0;
+        return xBetween && yBetween;
+    }
+}
