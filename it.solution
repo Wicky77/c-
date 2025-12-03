@@ -1,0 +1,745 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics;
+
+namespace StudentRatingSystem
+{
+    public class Student : IComparable<Student>
+    {
+        public string Name { get; set; }
+        public int Id { get; set; }
+        public Dictionary<string, int> Grades { get; set; }
+        
+        public double GPA => CalculateGPA();
+        
+        public Student(string name, int id, Dictionary<string, int> grades)
+        {
+            Name = name;
+            Id = id;
+            Grades = grades ?? new Dictionary<string, int>();
+        }
+        
+        private double CalculateGPA(int subjectIndex = 0)
+        {
+            if (subjectIndex >= Grades.Count || !Grades.Any())
+                return 0.0;
+            
+            var subject = Grades.Keys.ElementAt(subjectIndex);
+            var grade = Grades[subject];
+            
+            double gradeGPA = ConvertGradeToGPA(grade);
+            
+            if (subjectIndex == Grades.Count - 1)
+                return gradeGPA;
+            
+            double remainingGPA = CalculateGPA(subjectIndex + 1);
+            
+            return (gradeGPA + remainingGPA * (Grades.Count - subjectIndex - 1)) / 
+                   (Grades.Count - subjectIndex);
+        }
+        
+        private double ConvertGradeToGPA(int grade)
+        {
+            return grade switch
+            {
+                >= 90 => 4.0,
+                >= 85 => 3.7,
+                >= 80 => 3.3,
+                >= 75 => 3.0,
+                >= 70 => 2.7,
+                >= 65 => 2.3,
+                >= 60 => 2.0,
+                >= 55 => 1.7,
+                >= 50 => 1.3,
+                _ => 1.0
+            };
+        }
+        
+        public int GetTotalScore() => Grades.Values.Sum();
+        
+        public string GetGradeReport()
+        {
+            var report = $"Студент: {Name} (ID: {Id})\nОценки:\n";
+            
+            foreach (var subject in Grades)
+                report += $"  {subject.Key}: {subject.Value}\n";
+            
+            report += $"GPA: {GPA:F2}\nОбщий балл: {GetTotalScore()}";
+            return report;
+        }
+        
+        public int CompareTo(Student other) => 
+            other == null ? 1 : GPA.CompareTo(other.GPA);
+        
+        public override string ToString() => 
+            $"{Name} (ID: {Id}) - GPA: {GPA:F2}";
+    }
+
+    public class StudentRatingSystem
+    {
+        public List<Student> Students { get; private set; }
+        public List<string> Subjects { get; }
+        
+        public StudentRatingSystem()
+        {
+            Students = new List<Student>();
+            Subjects = new List<string> { "Math", "English", "Science", "History", "PE" };
+            GenerateTestData(500);
+        }
+        
+        private void GenerateTestData(int count)
+        {
+            var random = new Random();
+            var names = new[]
+            {
+                "Иванов Алексей", "Петрова Мария", "Сидоров Дмитрий", 
+                "Козлова Анна", "Николаев Павел", "Смирнова Елена",
+                "Фёдоров Иван", "Орлова Ольга", "Лебедев Сергей",
+                "Григорьева Татьяна", "Киселёв Андрей", "Морозова Наталья",
+                "Зайцев Михаил", "Павлова Юлия", "Семёнов Артем",
+                "Волкова Ирина", "Алексеев Виктор", "Романова Екатерина"
+            };
+            
+            for (int i = 0; i < count; i++)
+            {
+                var name = $"{names[random.Next(names.Length)]} {i + 1}";
+                var id = 10000 + i;
+                
+                var grades = new Dictionary<string, int>();
+                foreach (var subject in Subjects)
+                {
+                    double u1 = 1.0 - random.NextDouble();
+                    double u2 = 1.0 - random.NextDouble();
+                    double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * 
+                                          Math.Sin(2.0 * Math.PI * u2);
+                    double grade = 75 + 15 * randStdNormal;
+                    grades[subject] = Math.Clamp((int)Math.Round(grade), 0, 100);
+                }
+                
+                Students.Add(new Student(name, id, grades));
+            }
+        }
+        
+        public double CalculateGPA(Student student, int depth = 0)
+        {
+            if (student == null || !student.Grades.Any())
+                return 0.0;
+            
+            if (depth >= student.Grades.Count)
+                return 0.0;
+            
+            var subject = student.Grades.Keys.ElementAt(depth);
+            var grade = student.Grades[subject];
+            
+            double gradeGPA = ConvertGradeToGPA(grade);
+            
+            if (depth == student.Grades.Count - 1)
+                return gradeGPA;
+            
+            double nextGPA = CalculateGPA(student, depth + 1);
+            
+            return (gradeGPA + nextGPA * (student.Grades.Count - depth - 1)) / 
+                   (student.Grades.Count - depth);
+        }
+        
+        public List<Student> QuickSortByGPA(List<Student> students, bool ascending = true)
+        {
+            if (students == null || students.Count <= 1)
+                return students.ToList();
+            
+            var pivot = students[students.Count / 2];
+            
+            var less = new List<Student>();
+            var equal = new List<Student>();
+            var greater = new List<Student>();
+            
+            foreach (var student in students)
+            {
+                int comparison = student.GPA.CompareTo(pivot.GPA);
+                
+                if (comparison < 0) less.Add(student);
+                else if (comparison > 0) greater.Add(student);
+                else equal.Add(student);
+            }
+            
+            var sorted = new List<Student>();
+            
+            if (ascending)
+            {
+                sorted.AddRange(QuickSortByGPA(less, ascending));
+                sorted.AddRange(equal);
+                sorted.AddRange(QuickSortByGPA(greater, ascending));
+            }
+            else
+            {
+                sorted.AddRange(QuickSortByGPA(greater, ascending));
+                sorted.AddRange(equal);
+                sorted.AddRange(QuickSortByGPA(less, ascending));
+            }
+            
+            return sorted;
+        }
+        
+        public List<Student> SortByName(List<Student> students, bool ascending = true) =>
+            ascending ? students.OrderBy(s => s.Name).ToList() 
+                      : students.OrderByDescending(s => s.Name).ToList();
+        
+        public List<Student> FindStudentsInRange(string subject, int minGrade, int maxGrade) =>
+            Students.Where(s => s.Grades.ContainsKey(subject) && 
+                               s.Grades[subject] >= minGrade && 
+                               s.Grades[subject] <= maxGrade).ToList();
+        
+        public double CalculatePercentile(Student student, string subject = null)
+        {
+            if (student == null || !Students.Any())
+                return 0.0;
+            
+            if (string.IsNullOrEmpty(subject))
+            {
+                var scores = Students.Select(s => s.GPA).OrderBy(s => s).ToList();
+                return CalculatePercentileForScore(scores, student.GPA);
+            }
+            else
+            {
+                if (!student.Grades.ContainsKey(subject))
+                    return 0.0;
+                
+                var scores = Students.Where(s => s.Grades.ContainsKey(subject))
+                                    .Select(s => (double)s.Grades[subject])
+                                    .OrderBy(s => s).ToList();
+                
+                return CalculatePercentileForScore(scores, student.Grades[subject]);
+            }
+        }
+        
+        private double CalculatePercentileForScore(List<double> scores, double targetScore)
+        {
+            int count = scores.Count;
+            if (count == 0) return 0.0;
+            
+            int lowerCount = scores.Count(s => s < targetScore);
+            int equalCount = scores.Count(s => Math.Abs(s - targetScore) < 0.001);
+            
+            return ((double)lowerCount + 0.5 * equalCount) / count * 100;
+        }
+        
+        public Dictionary<string, double> GetSubjectStatistics(string subject)
+        {
+            var stats = new Dictionary<string, double>();
+            
+            var grades = Students.Where(s => s.Grades.ContainsKey(subject))
+                                .Select(s => (double)s.Grades[subject])
+                                .ToList();
+            
+            if (!grades.Any())
+                return stats;
+            
+            grades.Sort();
+            
+            stats["min"] = grades.Min();
+            stats["max"] = grades.Max();
+            stats["average"] = grades.Average();
+            stats["median"] = CalculateMedian(grades);
+            stats["stdDev"] = CalculateStandardDeviation(grades);
+            
+            return stats;
+        }
+        
+        private double CalculateMedian(List<double> numbers)
+        {
+            int count = numbers.Count;
+            if (count == 0) return 0;
+            
+            int mid = count / 2;
+            return count % 2 == 0 ? (numbers[mid - 1] + numbers[mid]) / 2.0 
+                                  : numbers[mid];
+        }
+        
+        private double CalculateStandardDeviation(List<double> numbers)
+        {
+            double avg = numbers.Average();
+            double sumOfSquares = numbers.Sum(n => Math.Pow(n - avg, 2));
+            return Math.Sqrt(sumOfSquares / numbers.Count);
+        }
+        
+        public bool AddStudent(Student student)
+        {
+            if (Students.Any(s => s.Id == student.Id))
+                return false;
+            
+            foreach (var subject in Subjects)
+            {
+                if (!student.Grades.ContainsKey(subject) || 
+                    student.Grades[subject] < 0 || 
+                    student.Grades[subject] > 100)
+                {
+                    return false;
+                }
+            }
+            
+            Students.Add(student);
+            return true;
+        }
+        
+        public bool RemoveStudent(int id)
+        {
+            var student = Students.FirstOrDefault(s => s.Id == id);
+            if (student == null) return false;
+            
+            return Students.Remove(student);
+        }
+        
+        public Student FindStudentById(int id) => 
+            Students.FirstOrDefault(s => s.Id == id);
+        
+        private double ConvertGradeToGPA(int grade)
+        {
+            return grade switch
+            {
+                >= 90 => 4.0,
+                >= 85 => 3.7,
+                >= 80 => 3.3,
+                >= 75 => 3.0,
+                >= 70 => 2.7,
+                >= 65 => 2.3,
+                >= 60 => 2.0,
+                >= 55 => 1.7,
+                >= 50 => 1.3,
+                _ => 1.0
+            };
+        }
+        
+        public Dictionary<string, object> GetOverallStatistics()
+        {
+            var stats = new Dictionary<string, object>();
+            
+            if (!Students.Any())
+            {
+                stats["error"] = "Нет данных о студентах";
+                return stats;
+            }
+            
+            var gpas = Students.Select(s => s.GPA).ToList();
+            
+            stats["totalStudents"] = Students.Count;
+            stats["avgGPA"] = gpas.Average();
+            stats["minGPA"] = gpas.Min();
+            stats["maxGPA"] = gpas.Max();
+            stats["medianGPA"] = CalculateMedian(gpas);
+            
+            return stats;
+        }
+    }
+
+    public class ConsoleMenu
+    {
+        private readonly StudentRatingSystem _ratingSystem;
+        
+        public ConsoleMenu(StudentRatingSystem ratingSystem) => 
+            _ratingSystem = ratingSystem;
+        
+        public void Run()
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.WriteLine("=== СИСТЕМА РЕЙТИНГА УЧАЩИХСЯ ===\n");
+            
+            while (true)
+            {
+                DisplayMenu();
+                if (!int.TryParse(Console.ReadLine(), out int choice))
+                {
+                    Console.WriteLine("Ошибка ввода! Введите число от 1 до 9.");
+                    continue;
+                }
+                
+                switch (choice)
+                {
+                    case 1: AddStudent(); break;
+                    case 2: RemoveStudent(); break;
+                    case 3: ShowAllStudents(); break;
+                    case 4: SortByGPA(); break;
+                    case 5: SortByName(); break;
+                    case 6: FilterByGrade(); break;
+                    case 7: ShowStatistics(); break;
+                    case 8: CalculatePercentile(); break;
+                    case 9: return;
+                    default: Console.WriteLine("Неверный выбор!"); break;
+                }
+                
+                Console.WriteLine("\nНажмите Enter для продолжения...");
+                Console.ReadLine();
+            }
+        }
+        
+        private void DisplayMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("ГЛАВНОЕ МЕНЮ");
+            Console.WriteLine("============");
+            Console.WriteLine("1. Добавить студента");
+            Console.WriteLine("2. Удалить студента");
+            Console.WriteLine("3. Показать всех студентов");
+            Console.WriteLine("4. Сортировать по GPA");
+            Console.WriteLine("5. Сортировать по имени");
+            Console.WriteLine("6. Фильтровать по оценкам");
+            Console.WriteLine("7. Показать статистику");
+            Console.WriteLine("8. Рассчитать перцентиль");
+            Console.WriteLine("9. Выход");
+            Console.Write("\nВыберите опцию (1-9): ");
+        }
+        
+        private void AddStudent()
+        {
+            Console.Clear();
+            Console.WriteLine("ДОБАВЛЕНИЕ СТУДЕНТА");
+            Console.WriteLine("===================\n");
+            
+            try
+            {
+                Console.Write("Введите имя студента: ");
+                string name = Console.ReadLine();
+                
+                Console.Write("Введите 5-значный ID (10000-99999): ");
+                if (!int.TryParse(Console.ReadLine(), out int id) || id < 10000 || id > 99999)
+                {
+                    Console.WriteLine("Некорректный ID!");
+                    return;
+                }
+                
+                var grades = new Dictionary<string, int>();
+                
+                foreach (var subject in _ratingSystem.Subjects)
+                {
+                    Console.Write($"Оценка по {subject} (0-100): ");
+                    if (!int.TryParse(Console.ReadLine(), out int grade) || grade < 0 || grade > 100)
+                    {
+                        Console.WriteLine($"Некорректная оценка по {subject}!");
+                        return;
+                    }
+                    grades[subject] = grade;
+                }
+                
+                var student = new Student(name, id, grades);
+                
+                if (_ratingSystem.AddStudent(student))
+                    Console.WriteLine($"\n✓ Студент {name} успешно добавлен!");
+                else
+                    Console.WriteLine("\n✗ Ошибка: студент с таким ID уже существует!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+            }
+        }
+        
+        private void RemoveStudent()
+        {
+            Console.Clear();
+            Console.WriteLine("УДАЛЕНИЕ СТУДЕНТА");
+            Console.WriteLine("=================\n");
+            
+            Console.Write("Введите ID студента: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("Некорректный ID!");
+                return;
+            }
+            
+            if (_ratingSystem.RemoveStudent(id))
+                Console.WriteLine($"✓ Студент с ID {id} удален.");
+            else
+                Console.WriteLine($"✗ Студент с ID {id} не найден.");
+        }
+        
+        private void ShowAllStudents()
+        {
+            Console.Clear();
+            Console.WriteLine("СПИСОК ВСЕХ СТУДЕНТОВ");
+            Console.WriteLine("=====================\n");
+            
+            var students = _ratingSystem.Students;
+            Console.WriteLine($"Всего студентов: {students.Count}\n");
+            
+            if (!students.Any())
+            {
+                Console.WriteLine("Нет данных о студентах.");
+                return;
+            }
+            
+            int pageSize = 20;
+            int page = 0;
+            
+            while (page * pageSize < students.Count)
+            {
+                var pageStudents = students.Skip(page * pageSize).Take(pageSize).ToList();
+                
+                Console.WriteLine($"--- Страница {page + 1} ---");
+                foreach (var student in pageStudents)
+                {
+                    Console.WriteLine($"  {student}");
+                }
+                
+                if ((page + 1) * pageSize < students.Count)
+                {
+                    Console.Write("\nПоказать следующую страницу? (д/н): ");
+                    if (Console.ReadLine()?.ToLower() != "д")
+                        break;
+                    page++;
+                    Console.WriteLine();
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        
+        private void SortByGPA()
+        {
+            Console.Clear();
+            Console.WriteLine("СОРТИРОВКА ПО GPA");
+            Console.WriteLine("=================\n");
+            
+            Console.WriteLine("1. По убыванию (от лучшего)");
+            Console.WriteLine("2. По возрастанию (от худшего)");
+            Console.Write("Выберите вариант: ");
+            
+            if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 2)
+            {
+                Console.WriteLine("Неверный выбор!");
+                return;
+            }
+            
+            bool ascending = choice == 2;
+            var sorted = _ratingSystem.QuickSortByGPA(_ratingSystem.Students, ascending);
+            
+            Console.WriteLine($"\nРезультат сортировки по GPA ({(ascending ? "по возрастанию" : "по убыванию")}):");
+            Console.WriteLine("--------------------------------------------------");
+            
+            int displayCount = Math.Min(20, sorted.Count);
+            for (int i = 0; i < displayCount; i++)
+            {
+                Console.WriteLine($"{i + 1}. {sorted[i].Name} - GPA: {sorted[i].GPA:F2}");
+            }
+            
+            if (sorted.Count > displayCount)
+                Console.WriteLine($"... и еще {sorted.Count - displayCount} студентов");
+        }
+        
+        private void SortByName()
+        {
+            Console.Clear();
+            Console.WriteLine("СОРТИРОВКА ПО ИМЕНИ");
+            Console.WriteLine("===================\n");
+            
+            Console.WriteLine("1. А-Я (по возрастанию)");
+            Console.WriteLine("2. Я-А (по убыванию)");
+            Console.Write("Выберите вариант: ");
+            
+            if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 2)
+            {
+                Console.WriteLine("Неверный выбор!");
+                return;
+            }
+            
+            bool ascending = choice == 1;
+            var sorted = _ratingSystem.SortByName(_ratingSystem.Students, ascending);
+            
+            Console.WriteLine($"\nРезультат сортировки по имени ({(ascending ? "А-Я" : "Я-А")}):");
+            Console.WriteLine("--------------------------------------------------");
+            
+            int displayCount = Math.Min(20, sorted.Count);
+            for (int i = 0; i < displayCount; i++)
+            {
+                Console.WriteLine($"{i + 1}. {sorted[i].Name} (GPA: {sorted[i].GPA:F2})");
+            }
+            
+            if (sorted.Count > displayCount)
+                Console.WriteLine($"... и еще {sorted.Count - displayCount} студентов");
+        }
+        
+        private void FilterByGrade()
+        {
+            Console.Clear();
+            Console.WriteLine("ФИЛЬТРАЦИЯ ПО ОЦЕНКАМ");
+            Console.WriteLine("=====================\n");
+            
+            Console.WriteLine("Выберите предмет:");
+            for (int i = 0; i < _ratingSystem.Subjects.Count; i++)
+                Console.WriteLine($"{i + 1}. {_ratingSystem.Subjects[i]}");
+            
+            Console.Write("Ваш выбор: ");
+            if (!int.TryParse(Console.ReadLine(), out int subjectChoice) || 
+                subjectChoice < 1 || subjectChoice > _ratingSystem.Subjects.Count)
+            {
+                Console.WriteLine("Неверный выбор!");
+                return;
+            }
+            
+            var subject = _ratingSystem.Subjects[subjectChoice - 1];
+            
+            Console.Write($"Минимальная оценка по {subject} (0-100): ");
+            if (!int.TryParse(Console.ReadLine(), out int min) || min < 0 || min > 100)
+            {
+                Console.WriteLine("Некорректное значение!");
+                return;
+            }
+            
+            Console.Write($"Максимальная оценка по {subject} (0-100): ");
+            if (!int.TryParse(Console.ReadLine(), out int max) || max < 0 || max > 100 || max < min)
+            {
+                Console.WriteLine("Некорректное значение!");
+                return;
+            }
+            
+            var filtered = _ratingSystem.FindStudentsInRange(subject, min, max);
+            
+            Console.WriteLine($"\nСтуденты с оценкой по {subject} от {min} до {max}:");
+            Console.WriteLine("--------------------------------------------------");
+            
+            if (!filtered.Any())
+            {
+                Console.WriteLine("Студентов не найдено.");
+                return;
+            }
+            
+            foreach (var student in filtered)
+            {
+                Console.WriteLine($"  {student.Name} - {subject}: {student.Grades[subject]} (GPA: {student.GPA:F2})");
+            }
+            
+            Console.WriteLine($"\nНайдено: {filtered.Count} студентов");
+        }
+        
+        private void ShowStatistics()
+        {
+            Console.Clear();
+            Console.WriteLine("СТАТИСТИКА");
+            Console.WriteLine("==========\n");
+            
+            var overall = _ratingSystem.GetOverallStatistics();
+            
+            Console.WriteLine("ОБЩАЯ СТАТИСТИКА:");
+            Console.WriteLine($"  Всего студентов: {overall["totalStudents"]}");
+            Console.WriteLine($"  Средний GPA: {overall["avgGPA"]:F2}");
+            Console.WriteLine($"  Минимальный GPA: {overall["minGPA"]:F2}");
+            Console.WriteLine($"  Максимальный GPA: {overall["maxGPA"]:F2}");
+            Console.WriteLine($"  Медианный GPA: {overall["medianGPA"]:F2}");
+            
+            Console.WriteLine("\nСТАТИСТИКА ПО ПРЕДМЕТАМ:");
+            foreach (var subject in _ratingSystem.Subjects)
+            {
+                var stats = _ratingSystem.GetSubjectStatistics(subject);
+                
+                if (stats.Any())
+                {
+                    Console.WriteLine($"\n  {subject}:");
+                    Console.WriteLine($"    Среднее: {stats["average"]:F1}");
+                    Console.WriteLine($"    Мин/Макс: {stats["min"]}/{stats["max"]}");
+                    Console.WriteLine($"    Медиана: {stats["median"]:F1}");
+                    Console.WriteLine($"    Стандартное отклонение: {stats["stdDev"]:F2}");
+                }
+            }
+            
+            var topStudents = _ratingSystem.QuickSortByGPA(_ratingSystem.Students, false).Take(5).ToList();
+            Console.WriteLine("\nТОП-5 СТУДЕНТОВ:");
+            for (int i = 0; i < topStudents.Count; i++)
+                Console.WriteLine($"  {i + 1}. {topStudents[i].Name} - GPA: {topStudents[i].GPA:F2}");
+        }
+        
+        private void CalculatePercentile()
+        {
+            Console.Clear();
+            Console.WriteLine("РАСЧЕТ ПЕРЦЕНТИЛЯ");
+            Console.WriteLine("=================\n");
+            
+            Console.Write("Введите ID студента: ");
+            if (!int.TryParse(Console.ReadLine(), out int id))
+            {
+                Console.WriteLine("Некорректный ID!");
+                return;
+            }
+            
+            var student = _ratingSystem.FindStudentById(id);
+            if (student == null)
+            {
+                Console.WriteLine($"Студент с ID {id} не найден.");
+                return;
+            }
+            
+            Console.WriteLine("\n1. По общему GPA");
+            Console.WriteLine("2. По конкретному предмету");
+            Console.Write("Выберите тип: ");
+            
+            if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > 2)
+            {
+                Console.WriteLine("Неверный выбор!");
+                return;
+            }
+            
+            if (choice == 1)
+            {
+                double percentile = _ratingSystem.CalculatePercentile(student);
+                Console.WriteLine($"\nПерцентиль студента {student.Name}: {percentile:F1}%");
+                Console.WriteLine($"Это означает, что студент лучше, чем {percentile:F1}% студентов.");
+            }
+            else
+            {
+                Console.WriteLine("\nВыберите предмет:");
+                for (int i = 0; i < _ratingSystem.Subjects.Count; i++)
+                    Console.WriteLine($"{i + 1}. {_ratingSystem.Subjects[i]}");
+                
+                Console.Write("Ваш выбор: ");
+                if (!int.TryParse(Console.ReadLine(), out int subjectChoice) || 
+                    subjectChoice < 1 || subjectChoice > _ratingSystem.Subjects.Count)
+                {
+                    Console.WriteLine("Неверный выбор!");
+                    return;
+                }
+                
+                var subject = _ratingSystem.Subjects[subjectChoice - 1];
+                double percentile = _ratingSystem.CalculatePercentile(student, subject);
+                
+                Console.WriteLine($"\nПерцентиль студента {student.Name} по предмету {subject}: {percentile:F1}%");
+                Console.WriteLine($"Оценка: {student.Grades[subject]}");
+                Console.WriteLine($"Студент лучше, чем {percentile:F1}% студентов по {subject}.");
+            }
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            try
+            {
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+                
+                Console.WriteLine("Инициализация системы рейтинга учащихся...");
+                var stopwatch = Stopwatch.StartNew();
+                
+                var ratingSystem = new StudentRatingSystem();
+                
+                stopwatch.Stop();
+                Console.WriteLine($"Система инициализирована за {stopwatch.ElapsedMilliseconds} мс");
+                Console.WriteLine($"Загружено студентов: {ratingSystem.Students.Count}");
+                Console.WriteLine("\nДля продолжения нажмите Enter...");
+                Console.ReadLine();
+                
+                var menu = new ConsoleMenu(ratingSystem);
+                menu.Run();
+                
+                Console.WriteLine("\nСпасибо за использование системы рейтинга!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Критическая ошибка: {ex.Message}");
+                Console.WriteLine($"Подробности: {ex.StackTrace}");
+            }
+            
+            Console.WriteLine("\nНажмите любую клавишу для выхода...");
+            Console.ReadKey();
+        }
+    }
+}
