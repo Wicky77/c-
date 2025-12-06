@@ -1,0 +1,296 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// ---------- Класс задачи ----------
+public class Task
+{
+    public int ID { get; set; }
+    public string Name { get; set; }
+    public int Duration { get; set; }
+    public int Priority { get; set; }
+    public List<int> Dependencies { get; set; } = new List<int>();
+}
+
+// ---------- Менеджер проекта ----------
+public class ProjectManager
+{
+    private Dictionary<int, Task> _tasks = new Dictionary<int, Task>();
+
+    public void AddTask(Task task)
+    {
+        if (task == null) throw new ArgumentNullException(nameof(task));
+        if (task.Duration < 0) throw new ArgumentException("Длительность >= 0");
+        if (task.Priority < 1 || task.Priority > 5) throw new ArgumentException("Приоритет 1-5");
+        if (_tasks.ContainsKey(task.ID)) throw new ArgumentException("ID уже существует");
+        if (task.Dependencies.Distinct().Count() != task.Dependencies.Count())
+            throw new ArgumentException("Дубликаты в зависимостях запрещены");
+
+        foreach (int dep in task.Dependencies)
+            if (!_tasks.ContainsKey(dep))
+                throw new ArgumentException($"Зависимость {dep} не найдена");
+
+        if (WouldIntroduceCycle(task))
+            throw new ArgumentException("Циклическая зависимость");
+
+        _tasks[task.ID] = task;
+    }
+
+    private bool WouldIntroduceCycle(Task newTask)
+    {
+        var visited = new HashSet<int>();
+        return HasPathTo(newTask.ID, newTask.Dependencies, visited);
+    }
+
+    private bool HasPathTo(int target, IEnumerable<int> start, HashSet<int> visited)
+    {
+        foreach (int id in start)
+        {
+            if (id == target) return true;
+            if (visited.Contains(id)) continue;
+            visited.Add(id);
+            if (_tasks.TryGetValue(id, out var t) && HasPathTo(target, t.Dependencies, visited))
+                return true;
+        }
+        return false;
+    }
+
+    public List<Task> ListAllTasks() => _tasks.Values.ToList();
+    public Task FindTask(int id) => _tasks.GetValueOrDefault(id);
+
+    public List<int> TopologicalSort()
+    {
+        var inDegree = _tasks.Keys.ToDictionary(id => id, _ => 0);
+        var graph = _tasks.Keys.ToDictionary(id => id, _ => new List<int>());
+
+        foreach (var task in _tasks.Values)
+        {
+            foreach (int dep in task.Dependencies)
+            {
+                graph[dep].Add(task.ID);
+                inDegree[task.ID]++;
+            }
+        }
+
+        var queue = new Queue<int>(_tasks.Keys.Where(id => inDegree[id] == 0));
+        var result = new List<int>();
+
+        while (queue.Count > 0)
+        {
+            int u = queue.Dequeue();
+            result.Add(u);
+            foreach (int v in graph[u])
+            {
+                if (--inDegree[v] == 0)
+                    queue.Enqueue(v);
+            }
+        }
+
+        if (result.Count != _tasks.Count)
+            throw new InvalidOperationException("Цикл в зависимостях");
+        return result;
+    }
+
+    // === ИСПРАВЛЕННЫЙ МЕТОД КРИТИЧЕСКОГО ПУТИ ===
+    public (List<int> path, int duration) CalculateCriticalPath()
+    {
+        if (_tasks.Count == 0) return (new List<int>(), 0);
+
+        var topo = TopologicalSort();
+        var earliestStart = _tasks.Keys.ToDictionary(id => id, _ => 0);
+        var earliestFinish = new Dictionary<int, int>(); // ← КЛЮЧЕВО: храним finish!
+        var predecessor = new Dictionary<int, int>();
+
+        // Проходим по задачам в топологическом порядке
+        foreach (int taskId in topo)
+        {
+            // Время завершения = время начала + длительность
+            int finishTime = earliestStart[taskId] + _tasks[taskId].Duration;
+            earliestFinish[taskId] = finishTime;
+
+            // Обновляем задачи, которые зависят от текущей
+            foreach (int dependentId in _tasks.Keys.Where(id => _tasks[id].Dependencies.Contains(taskId)))
+            {
+                // Если новое время начала больше текущего — обновляем
+                if (earliestStart[dependentId] < finishTime)
+                {
+                    earliestStart[dependentId] = finishTime;
+                    predecessor[dependentId] = taskId;
+                }
+            }
+        }
+
+        // Находим задачу с МАКСИМАЛЬНЫМ временем ЗАВЕРШЕНИЯ
+        var lastTask = earliestFinish.Aggregate((x, y) => x.Value > y.Value ? x : y);
+        int totalDuration = lastTask.Value;
+
+        // Восстанавливаем путь
+        var path = new List<int>();
+        int current = lastTask.Key;
+        while (true)
+        {
+            path.Add(current);
+            if (!predecessor.TryGetValue(current, out int pred)) break;
+            current = pred;
+        }
+        path.Reverse();
+
+        return (path, totalDuration);
+    }
+
+    public string VisualizeDependencies()
+    {
+        if (_tasks.Count == 0) return "Нет задач.";
+        var roots = _tasks.Keys.Where(id => !_tasks[id].Dependencies.Any()).ToList();
+        var visited = new HashSet<int>();
+        var lines = new List<string>();
+
+        void Dfs(int id, int depth)
+        {
+            if (!visited.Add(id)) return;
+            lines.Add($"{new string(' ', depth * 2)}{id}: {_tasks[id].Name}");
+            foreach (var next in _tasks.Keys.Where(next => _tasks[next].Dependencies.Contains(id)))
+                Dfs(next, depth + 1);
+        }
+
+        foreach (int root in roots) Dfs(root, 0);
+        foreach (int id in _tasks.Keys.Except(visited))
+            lines.Add($"[Orphan] {id}: {_tasks[id].Name}");
+
+        return string.Join("\n", lines);
+    }
+}
+
+// ---------- Основная программа ----------
+class Program
+{
+    static void Main()
+    {
+        var manager = new ProjectManager();
+        int choice;
+
+        Console.WriteLine("=== Добро пожаловать в Систему управления проектами! ===\n");
+
+        do
+        {
+            Console.WriteLine("=== Система управления проектами ===");
+            Console.WriteLine("1. Добавить задачу");
+            Console.WriteLine("2. Показать все задачи");
+            Console.WriteLine("3. Топологическая сортировка");
+            Console.WriteLine("4. Критический путь");
+            Console.WriteLine("5. Визуализация зависимостей");
+            Console.WriteLine("6. Выход");
+            Console.Write("Выберите действие: ");
+
+            if (!int.TryParse(Console.ReadLine(), out choice) || choice < 1 || choice > 6)
+            {
+                Console.WriteLine("\n❌ Неверный выбор! Попробуйте снова.\n");
+                continue;
+            }
+
+            switch (choice)
+            {
+                case 1:
+                    AddTask(manager);
+                    break;
+                case 2:
+                    ShowTasks(manager);
+                    break;
+                case 3:
+                    ShowTopoSort(manager);
+                    break;
+                case 4:
+                    ShowCriticalPath(manager);
+                    break;
+                case 5:
+                    ShowDependencies(manager);
+                    break;
+                case 6:
+                    Console.WriteLine("\n✅ Выход из системы. До свидания!");
+                    return;
+            }
+
+            Console.WriteLine("\n" + new string('-', 50) + "\n");
+
+        } while (choice != 6);
+    }
+
+    static void AddTask(ProjectManager manager)
+    {
+        try
+        {
+            Console.Write("\nID: ");
+            int id = int.Parse(Console.ReadLine());
+            Console.Write("Название: ");
+            string name = Console.ReadLine();
+            Console.Write("Длительность (ч): ");
+            int dur = int.Parse(Console.ReadLine());
+            Console.Write("Приоритет (1-5): ");
+            int prio = int.Parse(Console.ReadLine());
+
+            Console.Write("Зависимости (через запятую, или Enter): ");
+            var depsInput = Console.ReadLine();
+            var deps = string.IsNullOrWhiteSpace(depsInput)
+                ? new List<int>()
+                : depsInput.Split(',').Select(int.Parse).ToList();
+
+            manager.AddTask(new Task { ID = id, Name = name, Duration = dur, Priority = prio, Dependencies = deps });
+            Console.WriteLine("✅ Задача добавлена!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Ошибка: {ex.Message}");
+        }
+    }
+
+    static void ShowTasks(ProjectManager manager)
+    {
+        var tasks = manager.ListAllTasks();
+        if (!tasks.Any())
+        {
+            Console.WriteLine("\nНет задач.");
+            return;
+        }
+
+        Console.WriteLine("\nID | Название                | Длит | Приор | Зависимости");
+        Console.WriteLine("-------------------------------------------------------------");
+        foreach (var t in tasks.OrderBy(t => t.ID))
+        {
+            string deps = t.Dependencies.Any() ? string.Join(",", t.Dependencies) : "—";
+            Console.WriteLine($"{t.ID,-3}| {t.Name,-24}| {t.Duration,4} | {t.Priority,5} | {deps}");
+        }
+    }
+
+    static void ShowTopoSort(ProjectManager manager)
+    {
+        try
+        {
+            var order = manager.TopologicalSort();
+            Console.WriteLine($"\nПорядок выполнения (топосорт): {string.Join(" → ", order)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ {ex.Message}");
+        }
+    }
+
+    static void ShowCriticalPath(ProjectManager manager)
+    {
+        try
+        {
+            var (path, dur) = manager.CalculateCriticalPath();
+            Console.WriteLine($"\n🚀 Критический путь: {string.Join(" → ", path)}");
+            Console.WriteLine($"⏱️ Общая длительность: {dur} ч");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ {ex.Message}");
+        }
+    }
+
+    static void ShowDependencies(ProjectManager manager)
+    {
+        Console.WriteLine("\n🌳 Дерево зависимостей:");
+        Console.WriteLine(manager.VisualizeDependencies());
+    }
+}
