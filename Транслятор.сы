@@ -1,0 +1,165 @@
+namespace Assembler
+{
+    public class HackTranslator
+    {
+        private static readonly Dictionary<string, string> DestTable = CreateDestTable();
+        private static readonly Dictionary<string, string> CompTable = CreateCompTable();
+        private static readonly Dictionary<string, string> JumpTable = CreateJumpTable();
+
+        private static Dictionary<string, string> CreateDestTable()
+        {
+            return new Dictionary<string, string>
+            {
+                { "null", "000" },
+                { "M",    "001" },
+                { "D",    "010" },
+                { "MD",   "011" },
+                { "A",    "100" },
+                { "AM",   "101" },
+                { "AD",   "110" },
+                { "AMD",  "111" }
+            };
+        }
+
+        private static Dictionary<string, string> CreateCompTable()
+        {
+            return new Dictionary<string, string>
+            {
+                // a = 0
+                { "0",   "101010" },
+                { "1",   "111111" },
+                { "-1",  "111010" },
+                { "D",   "001100" },
+                { "A",   "110000" },
+                { "!D",  "001101" },
+                { "!A",  "110001" },
+                { "-D",  "001111" },
+                { "-A",  "110011" },
+                { "D+1", "011111" },
+                { "A+1", "110111" },
+                { "D-1", "001110" },
+                { "A-1", "110010" },
+                { "D+A", "000010" },
+                { "D-A", "010011" },
+                { "A-D", "000111" },
+                { "D&A", "000000" },
+                { "D|A", "010101" },
+                // a = 1 (M вместо A)
+                { "M",   "110000" },
+                { "!M",  "110001" },
+                { "-M",  "110011" },
+                { "M+1", "110111" },
+                { "M-1", "110010" },
+                { "D+M", "000010" },
+                { "D-M", "010011" },
+                { "M-D", "000111" },
+                { "D&M", "000000" },
+                { "D|M", "010101" }
+            };
+        }
+
+        private static Dictionary<string, string> CreateJumpTable()
+        {
+            return new Dictionary<string, string>
+            {
+                { "null", "000" },
+                { "JGT",  "001" },
+                { "JEQ",  "010" },
+                { "JGE",  "011" },
+                { "JLT",  "100" },
+                { "JNE",  "101" },
+                { "JLE",  "110" },
+                { "JMP",  "111" }
+            };
+        }
+
+        private static int nextVariableAddress = 16;
+
+        public string AInstructionToCode(string instruction, Dictionary<string, int> symbolTable)
+        {
+            string symbol = instruction.Substring(1);
+
+            if (int.TryParse(symbol, out int address))
+            {
+                return Convert.ToString(address, 2).PadLeft(16, '0');
+            }
+            else
+            {
+                if (!symbolTable.ContainsKey(symbol))
+                {
+                    symbolTable[symbol] = nextVariableAddress;
+                    nextVariableAddress++;
+                }
+                address = symbolTable[symbol];
+                return Convert.ToString(address, 2).PadLeft(16, '0');
+            }
+        }
+
+        public string CInstructionToCode(string instruction)
+        {
+            var (dest, comp, jump) = ParseCInstruction(instruction);
+            return EncodeCInstruction(dest, comp, jump);
+        }
+
+        private (string dest, string comp, string jump) ParseCInstruction(string instruction)
+        {
+            string dest = "null";
+            string comp = "";
+            string jump = "null";
+
+            int eqIndex = instruction.IndexOf('=');
+            int semiIndex = instruction.IndexOf(';');
+
+            if (eqIndex != -1 && semiIndex != -1)
+            {
+                dest = instruction.Substring(0, eqIndex);
+                comp = instruction.Substring(eqIndex + 1, semiIndex - eqIndex - 1);
+                jump = instruction.Substring(semiIndex + 1);
+            }
+            else if (eqIndex != -1)
+            {
+                dest = instruction.Substring(0, eqIndex);
+                comp = instruction.Substring(eqIndex + 1);
+            }
+            else if (semiIndex != -1)
+            {
+                comp = instruction.Substring(0, semiIndex);
+                jump = instruction.Substring(semiIndex + 1);
+            }
+            else
+            {
+                comp = instruction;
+            }
+
+            return (dest, comp, jump);
+        }
+
+        private string EncodeCInstruction(string dest, string comp, string jump)
+        {
+            string aBit = comp.Contains('M') ? "1" : "0";
+            string compBits = CompTable[comp];
+            string destBits = DestTable[dest];
+            string jumpBits = JumpTable[jump];
+
+            return "111" + aBit + compBits + destBits + jumpBits;
+        }
+
+        public string[] TranslateAsmToHack(string[] instructions, Dictionary<string, int> symbolTable)
+        {
+            nextVariableAddress = 16;
+            var result = new string[instructions.Length];
+            for (int i = 0; i < instructions.Length; i++)
+            {
+                if (instructions[i].StartsWith('@'))
+                {
+                    result[i] = AInstructionToCode(instructions[i], symbolTable);
+                }
+                else
+                {
+                    result[i] = CInstructionToCode(instructions[i]);
+                }
+            }
+            return result;
+        }
+    }
+}
